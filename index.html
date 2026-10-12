@@ -51,8 +51,9 @@
             flex-direction: column;
             align-items: center;
             gap: 1vh;
-            flex-grow: 1;
+            flex-shrink: 0;
             justify-content: center;
+            margin: 0.5vh 0;
         }
 
         #alert-box {
@@ -84,21 +85,24 @@
             display: none;
         }
 
-        /* 3. รูปภาพด้านล่าง */
+        /* 3. รูปภาพด้านล่าง: ปรับให้กว้างเต็มเท่านาฬิกา และยืดขยายเต็มพื้นที่ที่เหลือ */
         #image-container {
-            max-height: 28vh;
             width: 100%;
-            text-align: center;
-            flex-shrink: 0;
-            margin-bottom: 0.5vh;
+            flex-grow: 1; /* กินพื้นที่ความสูงที่เหลือทั้งหมด */
+            min-height: 0; /* ป้องกันเนื้อหาล้นจอ */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1vh;
         }
 
         #display-image {
-            max-height: 28vh;
-            max-width: 90vw;
-            object-fit: contain;
-            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* ขยายกว้างเต็มกรอบและตัดสัดส่วนให้พอดีไม่เบี้ยว */
+            border-radius: 10px;
             border: 2px solid #334155;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         /* เอฟเฟกต์กระพริบเมื่อเหลือ 1 นาที */
@@ -261,13 +265,12 @@
         // รหัสผ่าน Admin สำหรับจัดการภาพ
         const ADMIN_PASSWORD = "roomexam";
 
-        // *** ใส่ลิงก์รูปภาพเริ่มต้นที่นี่ *** (สามารถเปลี่ยนเป็นลิงก์รูปของคุณเองได้)
+        // *** ใส่ลิงก์รูปภาพเริ่มต้นที่นี่ ***
         const DEFAULT_IMAGE_URL = "SafetyRules.png";
 
         // ตัวแปรข้อมูล
         let examEndTime = localStorage.getItem('exam_endTime') || '';
         let examText = localStorage.getItem('exam_text') || '';
-        // หากไม่มีรูปที่ Admin เคยเซฟไว้ ให้ใช้รูป Default
         let examImage = localStorage.getItem('exam_image') || DEFAULT_IMAGE_URL;
 
         // ดึงองค์ประกอบหน้าเว็บ
@@ -308,7 +311,7 @@
                 customTextEl.textContent = examText;
                 customTextEl.style.display = 'block';
             } else {
-                customTextEl.style.display = 'none'; // เว้นว่าง ให้บรรทัดหายไป
+                customTextEl.style.display = 'none';
             }
         }
 
