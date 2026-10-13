@@ -26,7 +26,7 @@
             user-select: none;
         }
 
-        /* 1. ตัวแสดงเวลาขนาดใหญ่ด้านบนสุด กว้างเต็มจอ */
+        /* 1. ตัวแสดงเวลาปัจจุบันขนาดใหญ่ด้านบนสุด */
         #clock-wrapper {
             width: 100%;
             text-align: center;
@@ -35,32 +35,42 @@
 
         #clock {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 19vw;
+            font-size: 17vw; /* ปรับลดลงเล็กน้อยเพื่อให้พอดีพื้นที่แถบนับถอยหลัง */
             line-height: 0.88;
             font-weight: 900;
             letter-spacing: -2px;
-            color: #ffffff; /* เปลี่ยนเป็นสีขาว */
-            text-shadow: 0 0 30px rgba(255, 255, 255, 0.4); /* เปลี่ยนเงาเป็นสีขาวนวล */
-            transition: color 0.3s;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
         }
 
-        /* 2. พื้นที่เนื้อหากลางจอ (แจ้งเตือน + ข้อความ) */
+        /* 2. พื้นที่เนื้อหากลางจอ (นับถอยหลัง + แจ้งเตือน + ข้อความ) */
         .content-area {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1vh;
+            gap: 0.8vh;
             flex-shrink: 0;
             justify-content: center;
             margin: 0.5vh 0;
         }
 
+        /* ส่วนแสดงเวลานับถอยหลัง ที่เพิ่มเข้ามาใหม่ */
+        #countdown-timer {
+            display: none;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: clamp(2rem, 5vw, 4.5rem);
+            font-weight: 900;
+            color: #38bdf8;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+            letter-spacing: 1px;
+        }
+
         #alert-box {
             display: none;
-            font-size: clamp(1.2rem, 3.5vw, 3rem);
+            font-size: clamp(1rem, 2.5vw, 2.2rem);
             font-weight: bold;
-            padding: 0.5vh 3vw;
+            padding: 0.4vh 2.5vw;
             border-radius: 50px;
             text-align: center;
         }
@@ -78,14 +88,14 @@
         }
 
         #custom-text {
-            font-size: clamp(1.2rem, 2.8vw, 2.4rem);
+            font-size: clamp(1.1rem, 2.3vw, 2rem);
             color: #cbd5e1;
             text-align: center;
             white-space: pre-wrap;
             display: none;
         }
 
-        /* 3. รูปภาพด้านล่าง: กว้างเต็มเท่านาฬิกา และยืดขยายเต็มพื้นที่ที่เหลือ */
+        /* 3. รูปภาพด้านล่าง */
         #image-container {
             width: 100%;
             flex-grow: 1;
@@ -109,7 +119,7 @@
         .blink {
             animation: blinker 1s linear infinite !important;
             color: #ff3333 !important;
-            text-shadow: 0 0 40px rgba(255, 0, 0, 0.8) !important;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 0.8) !important;
         }
 
         @keyframes blinker {
@@ -210,13 +220,16 @@
 </head>
 <body>
 
-    <!-- 1. ส่วนแสดงเวลาหลัก (นับถอยหลัง หรือ เวลาปัจจุบัน) -->
+    <!-- 1. ส่วนแสดงเวลาปัจจุบัน (Real-time นาฬิกาหลัก แสดงตลอดเวลา) -->
     <div id="clock-wrapper">
-        <div id="clock">00:00</div>
+        <div id="clock">00:00:00</div>
     </div>
 
-    <!-- 2. แจ้งเตือน + ข้อความกำหนดเอง -->
+    <!-- 2. แจ้งเตือน + นับถอยหลัง + ข้อความกำหนดเอง -->
     <div class="content-area">
+        <!-- เวลานับถอยหลัง (แสดงเฉพาะเมื่อกำหนดเวลาหมด) -->
+        <div id="countdown-timer">เหลือเวลา 00:00:00</div>
+        
         <div id="alert-box"></div>
         <div id="custom-text"></div>
     </div>
@@ -270,6 +283,7 @@
         let examImage = localStorage.getItem('exam_image') || DEFAULT_IMAGE_URL;
 
         const clockEl = document.getElementById('clock');
+        const countdownEl = document.getElementById('countdown-timer');
         const alertBox = document.getElementById('alert-box');
         const customTextEl = document.getElementById('custom-text');
         const imgEl = document.getElementById('display-image');
@@ -297,7 +311,8 @@
             examEndTime = '';
             timeInput.value = '';
             localStorage.removeItem('exam_endTime');
-            clockEl.classList.remove('blink');
+            countdownEl.style.display = 'none';
+            countdownEl.classList.remove('blink');
             alertBox.style.display = 'none';
             tick();
         }
@@ -323,79 +338,82 @@
         function tick() {
             const now = new Date();
 
-            // กรณีที่ 1: ไม่ได้ตั้งเวลาหมดสอบ -> แสดงนาฬิกา Real-time ปกติ
+            // 1. นาฬิกาหลักด้านบน: แสดงเวลาปัจจุบันเสมอ (hh:mm:ss)
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            clockEl.textContent = `${h}:${m}:${s}`;
+
+            // 2. ถ้าไม่ได้กำหนดเวลาหมด ให้ซ่อนเวลานับถอยหลังและข้อความเตือน
             if (!examEndTime) {
-                const h = String(now.getHours()).padStart(2, '0');
-                const m = String(now.getMinutes()).padStart(2, '0');
-                const s = String(now.getSeconds()).padStart(2, '0');
-                clockEl.textContent = `${h}:${m}:${s}`;
-                clockEl.classList.remove('blink');
+                countdownEl.style.display = 'none';
+                countdownEl.classList.remove('blink');
                 alertBox.style.display = 'none';
                 return;
             }
 
-            // กรณีที่ 2: มีการตั้งเวลาหมดสอบ -> แสดงเป็นเวลานับถอยหลังทันที
+            // 3. คำนวณเวลานับถอยหลัง
             const [endH, endM, endS] = examEndTime.split(':').map(Number);
             const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM, endS || 0);
 
             let diffSec = Math.floor((target - now) / 1000);
 
-            // หมดเวลา
+            // เมื่อหมดเวลาสอบแล้ว
             if (diffSec <= 0) {
-                clockEl.textContent = "00:00";
-                clockEl.classList.remove('blink');
+                countdownEl.style.display = 'none';
+                countdownEl.classList.remove('blink');
                 alertBox.textContent = "⚠️ หมดเวลาสอบแล้ว";
                 alertBox.className = "alert-danger";
                 alertBox.style.display = 'block';
                 return;
             }
 
-            // คำนวณเป็น นาที และ วินาที
+            // แสดงแถบนับถอยหลัง
+            countdownEl.style.display = 'block';
             const hours = Math.floor(diffSec / 3600);
             const minutes = Math.floor((diffSec % 3600) / 60);
             const seconds = diffSec % 60;
 
             const mStr = String(minutes).padStart(2, '0');
             const sStr = String(seconds).padStart(2, '0');
-
-            // หากเกิน 1 ชม. ให้แสดง ชม:นาที:วินาที หากไม่เกินแสดง นาที:วินาที
+            
+            let timeStr = "";
             if (hours > 0) {
                 const hStr = String(hours).padStart(2, '0');
-                clockEl.textContent = `${hStr}:${mStr}:${sStr}`;
+                timeStr = `${hStr}:${mStr}:${sStr}`;
             } else {
-                clockEl.textContent = `${mStr}:${sStr}`;
+                timeStr = `${mStr}:${sStr}`;
             }
+            countdownEl.textContent = `⏳ เหลือเวลา: ${timeStr}`;
 
-            // เช็คเงื่อนไข 1 นาทีสุดท้าย (diffSec <= 60) -> ตัวเลขกระพริบถี่ๆ
+            // เงื่อนไขการแจ้งเตือน
             if (diffSec <= 60) {
-                clockEl.classList.add('blink');
+                // เหลือ 1 นาทีสุดท้าย ให้แถบนับถอยหลังกระพริบสีแดง
+                countdownEl.classList.add('blink');
                 alertBox.textContent = `🚨 เหลือเวลาอีก ${diffSec} วินาที!`;
                 alertBox.className = "alert-danger";
                 alertBox.style.display = 'block';
-            }
-            // เหลือ 5 นาที
+            } 
             else if (diffSec <= 300) {
-                clockEl.classList.remove('blink');
+                countdownEl.classList.remove('blink');
                 alertBox.textContent = "เหลือเวลาอีก 5 นาที";
                 alertBox.className = "alert-warning";
                 alertBox.style.display = 'block';
-            }
-            // เหลือ 15 นาที
+            } 
             else if (diffSec <= 900) {
-                clockEl.classList.remove('blink');
+                countdownEl.classList.remove('blink');
                 alertBox.textContent = "เหลือเวลาอีก 15 นาที";
                 alertBox.className = "alert-warning";
                 alertBox.style.display = 'block';
-            }
-            // เหลือ 30 นาที
+            } 
             else if (diffSec <= 1800) {
-                clockEl.classList.remove('blink');
+                countdownEl.classList.remove('blink');
                 alertBox.textContent = "เหลือเวลาอีก 30 นาที";
                 alertBox.className = "alert-warning";
                 alertBox.style.display = 'block';
             } 
             else {
-                clockEl.classList.remove('blink');
+                countdownEl.classList.remove('blink');
                 alertBox.style.display = 'none';
             }
         }
