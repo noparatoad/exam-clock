@@ -26,7 +26,7 @@
             user-select: none;
         }
 
-        /* 1. นาฬิกาขนาดใหญ่ด้านบนสุด กว้างเต็มจอ */
+        /* 1. ตัวแสดงเวลาขนาดใหญ่ด้านบนสุด กว้างเต็มจอ */
         #clock-wrapper {
             width: 100%;
             text-align: center;
@@ -35,12 +35,12 @@
 
         #clock {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 19vw; /* ปรับขนาดฟอนต์เต็มจอตามแนวนอน */
+            font-size: 19vw;
             line-height: 0.88;
             font-weight: 900;
             letter-spacing: -2px;
-            color: #38bdf8;
-            text-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+            color: #ffffff; /* เปลี่ยนเป็นสีขาว */
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.4); /* เปลี่ยนเงาเป็นสีขาวนวล */
             transition: color 0.3s;
         }
 
@@ -85,11 +85,11 @@
             display: none;
         }
 
-        /* 3. รูปภาพด้านล่าง: ปรับให้กว้างเต็มเท่านาฬิกา และยืดขยายเต็มพื้นที่ที่เหลือ */
+        /* 3. รูปภาพด้านล่าง: กว้างเต็มเท่านาฬิกา และยืดขยายเต็มพื้นที่ที่เหลือ */
         #image-container {
             width: 100%;
-            flex-grow: 1; /* กินพื้นที่ความสูงที่เหลือทั้งหมด */
-            min-height: 0; /* ป้องกันเนื้อหาล้นจอ */
+            flex-grow: 1;
+            min-height: 0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -99,13 +99,13 @@
         #display-image {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             border-radius: 10px;
             border: 2px solid #334155;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
-        /* เอฟเฟกต์กระพริบเมื่อเหลือ 1 นาที */
+        /* เอฟเฟกต์กระพริบเมื่อเหลือ 1 นาทีสุดท้าย */
         .blink {
             animation: blinker 1s linear infinite !important;
             color: #ff3333 !important;
@@ -116,7 +116,7 @@
             50% { opacity: 0; }
         }
 
-        /* 4. แผงควบคุมสำหรับผู้ใช้ทั่วไป (ด้านล่างจอ) */
+        /* 4. แผงควบคุมสำหรับผู้ใช้ทั่วไป */
         #user-control-panel {
             width: 100%;
             max-width: 950px;
@@ -161,7 +161,7 @@
             min-width: 250px;
         }
 
-        /* ปุ่มทางขวาล่าง */
+        /* ปุ่มมุมขวาล่าง */
         .bottom-actions {
             position: fixed;
             bottom: 8px;
@@ -210,9 +210,9 @@
 </head>
 <body>
 
-    <!-- 1. นาฬิกาหลัก -->
+    <!-- 1. ส่วนแสดงเวลาหลัก (นับถอยหลัง หรือ เวลาปัจจุบัน) -->
     <div id="clock-wrapper">
-        <div id="clock">00:00:00</div>
+        <div id="clock">00:00</div>
     </div>
 
     <!-- 2. แจ้งเตือน + ข้อความกำหนดเอง -->
@@ -262,18 +262,13 @@
     </div>
 
     <script>
-        // รหัสผ่าน Admin สำหรับจัดการภาพ
         const ADMIN_PASSWORD = "roomexam";
-
-        // *** ใส่ลิงก์รูปภาพเริ่มต้นที่นี่ ***
         const DEFAULT_IMAGE_URL = "SafetyRules.png";
 
-        // ตัวแปรข้อมูล
         let examEndTime = localStorage.getItem('exam_endTime') || '';
         let examText = localStorage.getItem('exam_text') || '';
         let examImage = localStorage.getItem('exam_image') || DEFAULT_IMAGE_URL;
 
-        // ดึงองค์ประกอบหน้าเว็บ
         const clockEl = document.getElementById('clock');
         const alertBox = document.getElementById('alert-box');
         const customTextEl = document.getElementById('custom-text');
@@ -283,27 +278,28 @@
         const timeInput = document.getElementById('time-picker');
         const textInput = document.getElementById('text-picker');
 
-        // ผูกค่าตั้งต้นกับหน้าจอ Input
         timeInput.value = examEndTime;
         textInput.value = examText;
 
-        // ฟังก์ชันอัปเดตข้อความทันทีเมื่อพิมพ์
         textInput.addEventListener('input', (e) => {
             examText = e.target.value;
             localStorage.setItem('exam_text', examText);
             renderText();
         });
 
-        // ฟังก์ชันอัปเดตเวลาหมดสอบทันทีเมื่อเลือก
         timeInput.addEventListener('change', (e) => {
             examEndTime = e.target.value;
             localStorage.setItem('exam_endTime', examEndTime);
+            tick();
         });
 
         function clearEndTime() {
             examEndTime = '';
             timeInput.value = '';
             localStorage.removeItem('exam_endTime');
+            clockEl.classList.remove('blink');
+            alertBox.style.display = 'none';
+            tick();
         }
 
         function renderText() {
@@ -323,31 +319,30 @@
             userPanel.classList.toggle('hidden');
         }
 
-        // Loop แสดงเวลานาฬิกา (ทำงานตลอดเวลา)
+        // Loop จัดการเวลา
         function tick() {
             const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const s = String(now.getSeconds()).padStart(2, '0');
-            clockEl.textContent = `${h}:${m}:${s}`;
 
-            checkCountdown(now);
-        }
-
-        function checkCountdown(now) {
+            // กรณีที่ 1: ไม่ได้ตั้งเวลาหมดสอบ -> แสดงนาฬิกา Real-time ปกติ
             if (!examEndTime) {
-                alertBox.style.display = 'none';
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                clockEl.textContent = `${h}:${m}:${s}`;
                 clockEl.classList.remove('blink');
+                alertBox.style.display = 'none';
                 return;
             }
 
+            // กรณีที่ 2: มีการตั้งเวลาหมดสอบ -> แสดงเป็นเวลานับถอยหลังทันที
             const [endH, endM, endS] = examEndTime.split(':').map(Number);
             const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM, endS || 0);
 
-            const diffSec = Math.floor((target - now) / 1000);
+            let diffSec = Math.floor((target - now) / 1000);
 
             // หมดเวลา
             if (diffSec <= 0) {
+                clockEl.textContent = "00:00";
                 clockEl.classList.remove('blink');
                 alertBox.textContent = "⚠️ หมดเวลาสอบแล้ว";
                 alertBox.className = "alert-danger";
@@ -355,7 +350,23 @@
                 return;
             }
 
-            // เหลือไม่เกิน 1 นาที (60 วินาที) -> กระพริบถี่ๆ
+            // คำนวณเป็น นาที และ วินาที
+            const hours = Math.floor(diffSec / 3600);
+            const minutes = Math.floor((diffSec % 3600) / 60);
+            const seconds = diffSec % 60;
+
+            const mStr = String(minutes).padStart(2, '0');
+            const sStr = String(seconds).padStart(2, '0');
+
+            // หากเกิน 1 ชม. ให้แสดง ชม:นาที:วินาที หากไม่เกินแสดง นาที:วินาที
+            if (hours > 0) {
+                const hStr = String(hours).padStart(2, '0');
+                clockEl.textContent = `${hStr}:${mStr}:${sStr}`;
+            } else {
+                clockEl.textContent = `${mStr}:${sStr}`;
+            }
+
+            // เช็คเงื่อนไข 1 นาทีสุดท้าย (diffSec <= 60) -> ตัวเลขกระพริบถี่ๆ
             if (diffSec <= 60) {
                 clockEl.classList.add('blink');
                 alertBox.textContent = `🚨 เหลือเวลาอีก ${diffSec} วินาที!`;
@@ -382,13 +393,14 @@
                 alertBox.textContent = "เหลือเวลาอีก 30 นาที";
                 alertBox.className = "alert-warning";
                 alertBox.style.display = 'block';
-            } else {
+            } 
+            else {
                 clockEl.classList.remove('blink');
                 alertBox.style.display = 'none';
             }
         }
 
-        // ส่วนของ Admin (จัดการรูปภาพ)
+        // ระบบ Admin รูปภาพ
         function openAdmin() {
             const pass = prompt("กรุณากรอกรหัสผ่าน Admin เพื่อจัดการรูปภาพ:");
             if (pass === ADMIN_PASSWORD) {
@@ -431,7 +443,6 @@
             }
         }
 
-        // เรียกทำงานเมื่อโหลดหน้าเว็บ
         renderText();
         renderImage();
         setInterval(tick, 500);
